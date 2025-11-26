@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Nuxt
+.output/
+.nuxt/
+dist/
+.cache/
+coverage/
+
+# Logs
+logs/
+*.log
+*.log.*
+*.out
+*.pid
+*.seed
+*.pid.lock
+
+# Editor
+.vscode/
+.idea/
+
+# Env
+.env
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
