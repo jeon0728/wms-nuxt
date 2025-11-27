@@ -4,8 +4,6 @@ import { defineEventHandler, readBody } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const id = Number(event.context.params?.id)
-  const body = await readBody(event)
-
   let db = await getInboundDB()
   const itemIndex = db.findIndex(item => item.id === id)
 
@@ -15,19 +13,11 @@ export default defineEventHandler(async (event) => {
       resultMsg: 'Item not found',
       resultData: null
     }
-  }
-
-  // 업데이트 처리
-  db[itemIndex] = {
-    ...db[itemIndex],
-    ...body
-  }
-
-  await updateInboundDB(db)
-
-  return {
-    resultCd: 200,
-    resultMsg: 'Updated successfully',
-    resultData: db[itemIndex]
+  } else {
+    return {
+      resultCd: 200,
+      resultMsg: 'Updated successfully',
+      resultData: db[itemIndex]
+    }
   }
 })

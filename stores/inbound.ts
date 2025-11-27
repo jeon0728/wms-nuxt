@@ -16,8 +16,8 @@ export const useInboundStore = defineStore('inbound', () => {
             '/api/inbound',
             { method: 'GET' }
         )
-        const {status, data} = result
-        items.value = data
+        const {resultCd, resultMsg, resultData} = result
+        items.value = resultData
     } catch (err: any) {
         errorMsg.value = err?.data?.message || '회원 조회 중 오류가 발생했습니다.'
     }finally {
@@ -39,14 +39,66 @@ export const useInboundStore = defineStore('inbound', () => {
     }
   }
 
+  // async function getDetailById(id: number) {
+  //   await fetchList()
+  //   return items.value.find(u => u.id === id)
+  // }
+
   async function getDetailById(id: number) {
-    await fetchList()
-    return items.value.find(u => u.id === id)
+    try {
+      const detailData = await requestApi<ApiResponse<Inbound>>(
+        `/api/inbound/${id}`,
+        { 
+          method: 'GET'
+        }
+      )
+
+      const {resultCd, resultMsg, resultData} = detailData
+      
+      // store.item 배열에서 해당 ID 업데이트
+      //const idx = items.value.findIndex(u => u.id === id)
+      if (resultCd === 200) return resultData
+      
+    } catch (err: any) {
+      errorMsg.value = err?.data?.message || '수정 중 오류가 발생했습니다.'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function create(payload: Partial<Inbound>) {
+    try {
+      const newData = await requestApi<ApiResponse<Inbound>>(
+        '/api/inbound/create',
+        { 
+          method: 'POST',
+          body: payload
+        }
+      )
+
+      const {resultCd, resultMsg, resultData} = newData
+
+      console.log(resultCd)
+      console.log(resultMsg)
+      console.log(resultData)
+
+      if (resultCd === 200) {
+        items.value.push(resultData) // 목록 상태 갱신  
+        return true
+      } 
+      else return false 
+      
+    } catch (err: any) {
+      errorMsg.value = err?.data?.message || '등록 중 오류가 발생했습니다.'
+      return false
+    } finally {
+      loading.value = false
+    }
   }
 
   async function update(id: number, data: Partial<Inbound>) {
     try {
-      console.log(id)
       const updatedData = await requestApi<Inbound>(
         `/api/inbound/${id}`,
         { 
@@ -55,7 +107,7 @@ export const useInboundStore = defineStore('inbound', () => {
         }
       )
       
-      // store.users 배열에서 해당 ID 업데이트
+      // store.item 배열에서 해당 ID 업데이트
       const idx = items.value.findIndex(u => u.id === id)
       if (idx !== -1) {
         items.value[idx] = updatedData
@@ -77,23 +129,13 @@ export const useInboundStore = defineStore('inbound', () => {
   //   return res
   // }
 
-  // const get = async (id: number) => {
-  //   return await api.get<Inbound>(`/inbound/${id}`)
-  // }
-
-  // const update = async (id: number, data: Partial<Inbound>) => {
-  //   const res = await api.put<Inbound>(`/inbound/${id}`, data)
-  //   const idx = items.value.findIndex(i => i.id === id)
-  //   if (idx !== -1) items.value[idx] = res
-  //   return res
-  // }
-
   return { 
     items,
     loading,
     fetchList,
     fetchListBySearchText,
     getDetailById,
+    create,
     update
   }
 })

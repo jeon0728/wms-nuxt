@@ -4,7 +4,7 @@ import { useRouter } from '#app'
 import { useInboundStore } from '~/stores/inbound'
 
 const router = useRouter()
-const store = useInboundStore()
+const inboundStore = useInboundStore()
 const sku = ref('')
 const name = ref('')
 const qty = ref<number | null>(null)
@@ -13,7 +13,7 @@ const creating = ref(false)
 
 const submit = async () => {
   creating.value = true
-  await store.create({ sku: sku.value, name: name.value, qty: qty.value ?? 0, location: location.value })
+  await inboundStore.create({ sku: sku.value, name: name.value, qty: qty.value ?? 0, status:'pending', location: location.value })
   creating.value = false
   router.push('/inbound')
 }

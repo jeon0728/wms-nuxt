@@ -1,4 +1,3 @@
-import { inboundData } from '../data/inbound'
 import { readBody, defineEventHandler } from 'h3'
 
 export default defineEventHandler(async (event) => {

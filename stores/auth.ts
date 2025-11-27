@@ -2,17 +2,16 @@
 import { defineStore } from 'pinia'
 import { useCookie, useRuntimeConfig } from '#app'
 import type { LoginResponse } from '~/types/auth'
-
-interface LoginPayload {
-  email: string
-  password: string
-}
+import type { ApiResponse } from '~/types/api'
+import type { LoginPayload } from '~/types/auth'
 
 export const useAuthStore = defineStore('auth', () => {
+  const router = useRouter()
   const config = useRuntimeConfig()
   const accessToken = ref<string | null>(null)
   // optional: store user info
   const user = ref<{ id: number; email: string; name?: string } | null>(null)
+  const { requestApi } = useApi()
 
   // refresh 락/큐 (동시 refresh 방지)
   let refreshPromise: Promise<boolean> | null = null
@@ -34,14 +33,17 @@ export const useAuthStore = defineStore('auth', () => {
     // 로그인 요청은 백엔드 API로 보내는 것이 기본(A 옵션)
     try {
       const url = `${config.public.apiBase}/api/auth/login`
-      const res = await $fetch<LoginResponse>(url, {
+      const res = await requestApi<ApiResponse<LoginResponse>>(url, {
         method: 'POST',
         body: payload,
         credentials: 'include' // 타 도메인끼리도 쿠키전송 되도록 하기 위해서
       })
-      if (res?.accessToken) {
-        saveAccessToken(res.accessToken)
-        if (res.user) user.value = res.user
+
+      const {resultCd, resultMsg, resultData} = res
+
+      if (resultCd === 200) {
+        saveAccessToken(resultData.accessToken)
+        if (res.resultData.user) user.value = resultData.user ?? null
         return true
       }
       return false
@@ -55,14 +57,19 @@ export const useAuthStore = defineStore('auth', () => {
     // inform backend to clear refresh cookie (optional)
     try {
       const url = `${config.public.apiBase}/api/auth/logout`
-      await $fetch(url, { method: 'POST', credentials: 'include' })
+      const res = await requestApi(url, { method: 'POST', credentials: 'include' })
+      const {resultCd, resultMsg, resultData} = res
+
+      if (resultCd === 200) {
+        saveAccessToken(null)
+        user.value = null
+        // remove cookie
+        useCookie('access_token').value = null
+        router.push('/login')
+      }
     } catch (e) {
       console.warn('logout request failed', e)
     }
-    saveAccessToken(null)
-    user.value = null
-    // remove cookie
-    useCookie('access_token').value = null
   }
 
   // refreshToken으로 새로운 access token 요청 (동시성 처리 포함)
@@ -72,12 +79,15 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         const url = `${config.public.apiBase}/api/auth/refresh`
         // refresh 토큰은 httpOnly 쿠키에 있으므로 credentials: 'include'
-        const data = await $fetch<{ accessToken: string }>(url, {
+        const res = await requestApi<ApiResponse<LoginResponse>>(url, {
           method: 'POST',
           credentials: 'include'
         })
-        if (data?.accessToken) {
-          saveAccessToken(data.accessToken)
+
+        const {resultCd, resultMsg, resultData} = res
+
+        if (resultCd === 200) {
+          saveAccessToken(resultData.accessToken)
           return true
         }
         // 실패 시 강제 로그아웃
@@ -94,12 +104,18 @@ export const useAuthStore = defineStore('auth', () => {
     return refreshPromise
   }
 
+  // ⭐ 로그인 여부 계산
+  const isLoggedIn = computed(() => {
+    return !!accessToken.value && !!user.value
+  })
+
   return {
     accessToken,
     user,
     login,
     logout,
     refreshToken,
-    loadFromCookie
+    loadFromCookie,
+    isLoggedIn
   }
 })

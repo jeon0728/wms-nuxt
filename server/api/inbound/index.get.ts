@@ -1,8 +1,6 @@
 // server/api/inbound/index.get.ts
 import { defineEventHandler, getCookie } from 'h3'
 import { useRuntimeConfig } from '#imports'
-import { Inbound } from '~/types/models'
-import { inboundData } from '../data/inbound'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -12,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const accessToken = getCookie(event, 'access_token')
 
   if (!accessToken) {
-    throw createError({ statusCode: 401, message: 'Missing access token' })
+    throw createError({ status: 401, message: 'Missing access token' })
   }
 
   try {
@@ -30,9 +28,9 @@ export default defineEventHandler(async (event) => {
 
     if (e?.status === 401) {
       // 토큰 만료 상황
-      throw createError({ statusCode: 401, message: 'Unauthorized - Token expired' })
+      throw createError({ status: 401, message: 'Unauthorized - Token expired' })
     }
 
-    throw createError({ statusCode: 500, message: 'Proxy Search failed' })
+    throw createError({ status: 500, message: 'Proxy Search failed' })
   }
 })

@@ -1,11 +1,37 @@
-import { inboundData } from '../data/inbound'
 import { defineEventHandler } from 'h3'
 
-export default defineEventHandler((event) => {
-  const { id } = event.context.params as { id: string }
-  const found = inboundData.find(i => i.id === Number(id))
-  if (!found) {
-    throw createError({ statusCode: 404, statusMessage: 'Not found' })
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+  const id = event.context.params?.id
+  const backendUrl = `${config.public.apiBase}/api/mock/inbound/${id}`
+
+  // ⭐ Access Token 가져오기 (Nuxt server는 httpOnly cookie 접근 가능)
+  const accessToken = getCookie(event, 'access_token')
+
+  if (!accessToken) {
+    throw createError({ statusCode: 401, message: 'Missing access token' })
   }
-  return found
+
+  
+
+  try {
+    // backend API 호출
+    const resp = await $fetch(backendUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    })
+
+    return resp
+  } catch (e: any) {
+    console.error('Proxy inbound failed:', e)
+
+    if (e?.status === 401) {
+      // 토큰 만료 상황
+      throw createError({ statusCode: 401, message: 'Unauthorized - Token expired' })
+    }
+
+    throw createError({ statusCode: 500, message: 'Proxy update failed' })
+  }
 })
