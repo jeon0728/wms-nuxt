@@ -65,7 +65,9 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = null
         // remove cookie
         useCookie('access_token').value = null
-        router.push('/login')
+        if (import.meta.client) {
+          await navigateTo('/login')
+        }
       }
     } catch (e) {
       console.warn('logout request failed', e)
